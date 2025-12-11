@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sana Dair - Sınav Yönetim Sistemi</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Poppins', sans-serif; background-color: #f4f6f9; }
+        .sidebar { background-color: #2c3e50; color: white; min-height: 100vh; padding: 20px; }
+        .sidebar h3 { font-weight: 600; color: #1abc9c; }
+        .card { border: none; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .card-header { background-color: #ffffff; border-bottom: 2px solid #f0f0f0; font-weight: 600; color: #34495e; }
+        .btn-primary { background-color: #3498db; border: none; }
+        .btn-success { background-color: #2ecc71; border: none; }
+        .bg-orange { background-color: #e67e22; color:white; }
+        .bg-blue { background-color: #3498db; color:white; }
+        .bg-green { background-color: #2ecc71; color:white; }
+        .bg-red { background-color: #e74c3c; color:white; }
+        .stat-card { text-align: center; padding: 15px; border-radius: 10px; }
+        .stat-card h2 { font-size: 1.8rem; margin: 0; font-weight: bold; }
+        
+        input.score-input { width: 60px; text-align: center; border: 1px solid #ddd; border-radius: 4px; font-weight: bold; }
+        input.score-input:focus { outline: none; border-color: #3498db; background-color: #eaf2f8; }
+        input.score-input[value="G"], input.score-input[value="g"] { color: red; background-color: #fff0f0; }
+
+        .hidden { display: none !important; }
+        
+        .weight-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px; }
+        .weight-item input { width: 100%; text-align: center; padding: 2px; border-radius: 4px; border: 1px solid #ccc; color:#333; font-weight: bold; }
+        .weight-item input:focus { border-color: #3498db; background-color: #ecf0f1; }
+        .weight-item label { font-size: 0.75rem; color: #ccc; }
+
+        .report-table th { background-color: #f8f9fa; font-weight: 600; font-size: 0.85rem; }
+        .report-table td { vertical-align: middle; font-size: 0.85rem; }
+        
+        .report-comment-box { 
+            background-color: #fff; border: 1px solid #ddd; border-left: 5px solid #2ecc71; 
+            padding: 15px; border-radius: 5px; color: #2c3e50; font-size: 0.9rem; line-height: 1.5;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .report-comment-box h5 { color: #27ae60; font-weight: bold; margin-bottom: 5px; font-size: 1rem;}
+
+        #loginOverlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            z-index: 9999;
+            display: flex; justify-content: center; align-items: center;
+        }
+        .login-box {
+            background: white; padding: 40px; border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            text-align: center; width: 400px; max-width: 90%;
+        }
+        .login-box input { 
+            text-align: center; font-size: 1.1rem; padding: 10px; 
+            border: 2px solid #eee; border-radius: 8px; margin-bottom: 15px; letter-spacing: 2px;
+        }
+
+        @media print {
+            @page { size: A4; margin: 5mm; }
+            body { background-color: white; -webkit-print-color-adjust: exact; font-family: 'Times New Roman', serif; }
+            .sidebar, .d-print-none, #loginOverlay, .btn, input, select, .card-header button, #manualLessonInput, #tableContainer {
+                display: none !important;
+            }
+            .col-md-9, .col-lg-10 { 
+                width: 100% !important; flex: 0 0 100% !important; max-width: 100% !important; 
+                padding: 0 !important; margin: 0 !important; 
+            }
+            .card { border: 1px solid #ccc !important; box-shadow: none !important; margin-bottom: 10px !important; break-inside: avoid; }
+            canvas { max-height: 150px !important; width: 100% !important; }
+            #signatureArea { display: block !important; margin-top: 20px; page-break-inside: avoid; }
+            .bg-blue { background-color: #3498db !important; color: white !important; }
+            .bg-orange { background-color: #e67e22 !important; color: white !important; }
+            .bg-green { background-color: #2ecc71 !important; color: white !important; }
+            .bg-red { background-color: #e74c3c !important; color: white !important; }
+            .text-center-print { text-align: center !important; }
+            .table { font-size: 10pt; }
+            h3, h4, h5 { margin: 5px 0; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="loginOverlay">
+    <div class="login-box">
+        <div class="mb-3 text-primary display-4"><i class="fas fa-user-shield"></i></div>
+        <h3 class="mb-3 fw-bold text-dark">Sana Dair</h3>
+        <p class="text-muted small mb-4">Lütfen giriş şifrenizi yazınız.</p>
+        <input type="password" id="loginInput" class="form-control" placeholder="Şifre" onkeydown="if(event.key==='Enter') attemptLogin()">
+        <button onclick="attemptLogin()" class="btn btn-primary w-100 py-2 fw-bold">Giriş Yap</button>
+        <div id="loginError" class="text-danger mt-3 small hidden"><i class="fas fa-times-circle"></i> Hatalı Şifre!</div>
+        <div class="mt-3 text-muted small fw-bold">Hazırlayan Vedat YALÇIN</div>
+        <div class="mt-1 text-muted" style="font-size:0.7rem">(Test için "Demo" yazabilirsiniz)</div>
+    </div>
+</div>
+
+<div class="container-fluid hidden" id="mainSystem">
+    <div class="row">
+        <div class="col-md-3 col-lg-2 sidebar d-print-none">
+            <h3 class="text-center mb-4"><i class="fas fa-graduation-cap"></i> Sana Dair</h3>
+            
+            <div class="mb-3">
+                <label class="form-label text-light small">Aktif Kullanıcı</label>
+                <input type="text" id="lockedTeacherName" class="form-control fw-bold bg-dark text-white border-0 hidden" disabled>
+                <select id="teacherSelect" class="form-select hidden" onchange="updateLessons()"></select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Ders Seçiniz</label>
+                <select id="lessonSelect" class="form-select" onchange="checkLessonSelect()">
+                    <option value="">Önce Öğretmen Seçiniz</option>
+                </select>
+                <input type="text" id="manualLessonInput" class="form-control mt-2 hidden border-warning" placeholder="Ders adını yazınız...">
+            </div>
+
+            <hr>
+
+            <div class="mb-3">
+                <label class="form-label"><i class="fas fa-file-excel"></i> Öğrenci Listesi</label>
+                <input type="file" id="fileInput" class="form-control" accept=".xlsx, .xls, .csv">
+                <small class="text-warning d-none" id="demoFileMsg">* Demo Modunda Dosya Gerekmez</small>
+            </div>
+
+            <div id="columnMapping" class="card p-2 mb-3 bg-light hidden" style="border:1px solid #f39c12;">
+                <h6 class="text-dark fw-bold border-bottom pb-1">Sütunları Onayla (A, B, C, D)</h6>
+                <label class="small text-muted">1. Ad (Örn: Sütun A)</label>
+                <select id="colName" class="form-select form-select-sm mb-2"></select>
+                <label class="small text-muted">2. Soyad (Örn: Sütun B)</label>
+                <select id="colSurname" class="form-select form-select-sm mb-2"><option value="-1">Yok (Ad ile birleşik)</option></select>
+                <label class="small text-muted">3. Sınıf (Örn: Sütun C)</label>
+                <select id="colClass" class="form-select form-select-sm mb-2"></select>
+                <label class="small text-muted">4. Numara (Örn: Sütun D)</label>
+                <select id="colNo" class="form-select form-select-sm mb-2"></select>
+                <button onclick="applyMapping()" class="btn btn-warning btn-sm w-100 text-dark fw-bold">Listeyi Oluştur</button>
+            </div>
+
+            <div id="classSection" class="hidden">
+                <div class="mb-3">
+                    <label class="form-label">Sınıf Seçiniz</label>
+                    <select id="classSelect" class="form-select"></select>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Soru Sayısı</label>
+                    <input type="number" id="questionCount" class="form-control" value="10" min="1" max="20" onchange="renderWeightInputs()">
+                </div>
+
+                <div class="card bg-secondary p-2 mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <small class="text-white fw-bold">Puan Dağılımı</small>
+                        <span id="weightTotal" class="badge bg-danger">0/100</span>
+                    </div>
+                    <div id="weightInputs" class="weight-grid"></div>
+                    <div class="d-flex justify-content-between mt-2">
+                        <small class="text-light" style="font-size: 0.65rem;">* 5'in katlarına yuvarlar</small>
+                        <button onclick="distributeEvenly()" class="btn btn-sm btn-outline-light" style="font-size: 0.7rem;">Sıfırla</button>
+                    </div>
+                </div>
+
+                <button onclick="generateTable()" class="btn btn-primary w-100" id="btnList"><i class="fas fa-list"></i> Listeyi Getir</button>
+            </div>
+            
+            <div class="mt-5 text-center">
+                <button onclick="logout()" class="btn btn-outline-light btn-sm w-100"><i class="fas fa-sign-out-alt"></i> Güvenli Çıkış</button>
+            </div>
+        </div>
+
+        <div class="col-md-9 col-lg-10 p-4">
+            <div id="headerInfo" class="alert alert-info d-print-none hidden">
+                <h4 id="reportTitle" class="m-0">Sınav Analiz Ekranı</h4>
+                <small id="weightInfoDisplay" class="d-block mt-1 text-muted"></small>
+            </div>
+
+            <div id="welcomeMsg" class="text-center mt-5 d-print-none">
+                <img src="https://cdn-icons-png.flaticon.com/512/2997/2997316.png" width="150" class="mb-3">
+                <h2 id="welcomeTitle">Hoş Geldiniz!</h2>
+                <p class="lead">Sol menüden işlemlere başlayın.</p>
+            </div>
+
+            <div id="tableContainer" class="hidden d-print-none">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <div>
+                            <span><i class="fas fa-edit"></i> Not Giriş Ekranı</span>
+                            <span class="badge bg-warning text-dark ms-2"><i class="fas fa-info-circle"></i> 'G' yazarsanız tüm satır dolar.</span>
+                        </div>
+                        <div>
+                             <button onclick="calculateResults()" class="btn btn-success me-2"><i class="fas fa-calculator"></i> Raporu Oluştur</button>
+                             <button onclick="window.print()" class="btn btn-danger btn-sm"><i class="fas fa-file-pdf"></i> PDF Olarak Kaydet / Yazdır</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover align-middle" id="scoreTable">
+                                <thead><tr id="tableHeader"></tr></thead>
+                                <tbody id="tableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="resultsSection" class="hidden">
+                <div class="text-center mb-3 text-center-print">
+                    <h3 class="fw-bold m-0" style="text-transform: uppercase;">Rahmiye Palabıyık İmam Hatip Ortaokulu</h3>
+                    <h4 class="fw-bold m-0 mt-2" id="pdfReportTitle">ANALİZ RAPORU</h4>
+                    <p class="text-muted" id="pdfSubTitle"></p>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-3"><div class="stat-card bg-blue py-2"><h6>Ortalama</h6><h3 class="m-0" id="resMean">-</h3></div></div>
+                    <div class="col-3"><div class="stat-card bg-orange py-2"><h6>Medyan</h6><h3 class="m-0" id="resMedian">-</h3></div></div>
+                    <div class="col-3"><div class="stat-card bg-green py-2"><h6>Başarı %</h6><h3 class="m-0" id="resSuccessRate">-</h3></div></div>
+                    <div class="col-3"><div class="stat-card bg-red py-2"><h6>Std. Sapma</h6><h3 class="m-0" id="resStd">-</h3></div></div>
+                </div>
+
+                <div class="report-comment-box mb-3">
+                    <h5><i class="fas fa-comment-dots"></i> Değerlendirme</h5>
+                    <div id="examComment">Analiz bekleniyor...</div>
+                </div>
+
+                <div class="row">
+                    <div class="col-6">
+                        <div class="card mb-3 h-100">
+                            <div class="card-header fw-bold bg-light py-1">📊 Sınıf İstatistikleri</div>
+                            <div class="card-body p-2">
+                                <table class="table table-sm table-striped report-table mb-0">
+                                    <tbody>
+                                        <tr><td>Öğrenci Sayısı:</td><td class="fw-bold" id="statCount">0</td></tr>
+                                        <tr><td>Başarılı (≥50):</td><td class="text-success fw-bold" id="statPassed">0</td></tr>
+                                        <tr><td>Başarısız (<50):</td><td class="text-danger fw-bold" id="statFailed">0</td></tr>
+                                        <tr><td>Ranj (Genişlik):</td><td class="fw-bold" id="statRange">0</td></tr>
+                                        <tr><td>Çarpıklık:</td><td class="fw-bold" id="statSkew">0</td></tr>
+                                        <tr><td>Zorluk:</td><td class="fw-bold" id="statDifficulty">-</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="card mb-3 h-100">
+                            <div class="card-header fw-bold bg-light py-1">📈 Puan Dağılımı</div>
+                            <div class="card-body p-2">
+                                <table class="table table-sm table-bordered text-center report-table mb-0">
+                                    <thead class="table-light"><tr><th>Aralık</th><th>Sayı</th></tr></thead>
+                                    <tbody>
+                                        <tr><td>0 - 49</td><td id="range0_49">0</td></tr>
+                                        <tr><td>50 - 59</td><td id="range50_59">0</td></tr>
+                                        <tr><td>60 - 69</td><td id="range60_69">0</td></tr>
+                                        <tr><td>70 - 84</td><td id="range70_84">0</td></tr>
+                                        <tr><td>85 - 100</td><td id="range85_100">0</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-6"><div class="card"><div class="card-header bg-light fw-bold py-1">Puan Dağılımı</div><div class="card-body p-1"><canvas id="scoreChart" style="max-height: 180px;"></canvas></div></div></div>
+                    <div class="col-6"><div class="card"><div class="card-header bg-light fw-bold py-1">Not Dağılımı</div><div class="card-body p-1"><canvas id="gradeChart" style="max-height: 180px;"></canvas></div></div></div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header fw-bold bg-dark text-white py-1">📝 Soru (Madde) Analizi</div>
+                    <div class="card-body p-0">
+                        <table class="table table-striped mb-0 text-center table-sm">
+                            <thead class="table-secondary">
+                                <tr><th>Soru</th><th>Puan</th><th>Ort.</th><th>%</th><th>Durum</th></tr>
+                            </thead>
+                            <tbody id="questionAnalysisBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header fw-bold bg-light py-1">📑 Öğrenci Sonuç Listesi</div>
+                    <div class="card-body p-0">
+                        <table class="table table-bordered table-sm text-center mb-0" style="font-size: 0.8rem;">
+                            <thead class="table-light">
+                                <tr id="studentListHeader"></tr>
+                            </thead>
+                            <tbody id="studentListBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="signatureArea" class="mt-4 pt-2"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<script>
+    const teacherData = {
+        "Ayşe ŞİMŞEK": ["Sosyal Bilgiler", "T.C. İnkılap Tarihi ve Atatürkçülük"],
+        "Derya SAY": ["Teknoloji ve Tasarım"],
+        "Dilek KALYONCU": ["Bilişim Teknolojileri ve Yazılım"],
+        "Elif KIRMIZI YALÇIN": ["Din Kültürü ve Ahlak Bilgisi", "Kur'an-ı Kerim", "Peygamberimizin Hayatı", "Temel Dinî Bilgiler"],
+        "Esra ÖZTAŞÇI": ["Arapça"],
+        "Handan BOZKURT": ["Din Kültürü ve Ahlak Bilgisi", "Kur'an-ı Kerim", "Peygamberimizin Hayatı", "Temel Dinî Bilgiler"],
+        "Havva SARIOĞLU TIN": ["Türkçe"],
+        "Haydar SEDAY": ["Din Kültürü ve Ahlak Bilgisi", "Kur'an-ı Kerim", "Peygamberimizin Hayatı", "Temel Dinî Bilgiler"],
+        "İbrahim SAVAŞIR": ["Türkçe"],
+        "Mehtap TÜRKOĞLU": ["İngilizce", "Sç. İngilizce"],
+        "Öznur ÇALIŞKAN ŞİMŞEK": ["Beden Eğitimi ve Spor"],
+        "Rabia NurcaN OLGUN": ["İngilizce", "Sç. İngilizce"],
+        "Recep CEYLAN": ["Matematik", "Sç. Matematik ve Bilim Uygulamaları"],
+        "Seda ÇELİK DEMİREL": ["Fen Bilimleri"],
+        "Sema YILMAZ": ["İngilizce", "Sç. İngilizce"],
+        "Sümeyye EŞİN": ["Din Kültürü ve Ahlak Bilgisi", "Kur'an-ı Kerim", "Peygamberimizin Hayatı", "Temel Dinî Bilgiler"],
+        "Vedat YALÇIN": ["Din Kültürü ve Ahlak Bilgisi", "Kur'an-ı Kerim", "Peygamberimizin Hayatı", "Temel Dinî Bilgiler"],
+        "Yasin GÜNGÖR": ["Fen Bilimleri"],
+        "Yasir BAHADIR": ["Din Kültürü ve Ahlak Bilgisi", "Kur'an-ı Kerim", "Peygamberimizin Hayatı", "Temel Dinî Bilgiler"],
+        "Zeynep Damla CEYLAN": ["Matematik", "Sç. Matematik ve Bilim Uygulamaları"]
+    };
+
+    const allLessonsPool = ["Arapça", "Beden Eğitimi ve Spor", "Bilişim Teknolojileri ve Yazılım", "Din Kültürü ve Ahlak Bilgisi", "Fen Bilimleri", "Görsel Sanatlar", "İngilizce", "Kur'an-ı Kerim", "Matematik", "Müzik", "Peygamberimizin Hayatı", "Sç. Görgü Kuralları ve Nezaket (M)", "Sç. İngilizce", "Sç. Matematik ve Bilim Uygulamaları", "Sosyal Bilgiler", "T.C. İnkılap Tarihi ve Atatürkçülük", "Teknoloji ve Tasarım", "Temel Dinî Bilgiler", "Türkçe"];
+
+    // Demo Veriler
+    const demoStudents = [
+        {no:"101", adSoyad:"Ali Yılmaz", sinif:"Demo-A"},
+        {no:"102", adSoyad:"Ayşe Demir", sinif:"Demo-A"},
+        {no:"103", adSoyad:"Mehmet Kaya", sinif:"Demo-A"},
+        {no:"104", adSoyad:"Fatma Çelik", sinif:"Demo-A"},
+        {no:"105", adSoyad:"Hasan Can", sinif:"Demo-A"},
+        {no:"106", adSoyad:"Zeynep Su", sinif:"Demo-A"},
+        {no:"107", adSoyad:"Burak Yıl", sinif:"Demo-A"},
+        {no:"108", adSoyad:"Elif Koç", sinif:"Demo-A"},
+        {no:"109", adSoyad:"Caner Erkin", sinif:"Demo-A"},
+        {no:"110", adSoyad:"Deniz Ak", sinif:"Demo-A"},
+        {no:"111", adSoyad:"Emre Mor", sinif:"Demo-A"},
+        {no:"112", adSoyad:"Funda Arar", sinif:"Demo-A"},
+        {no:"113", adSoyad:"Gökhan Töre", sinif:"Demo-A"},
+        {no:"114", adSoyad:"Hakan Çal", sinif:"Demo-A"},
+        {no:"115", adSoyad:"İrem Derici", sinif:"Demo-A"}
+    ];
+
+    let isAdmin = false; 
+    let isDemoMode = false;
+    let currentLoggedInTeacher = "";
+    let rawExcelData = []; 
+    let allStudents = [];
+    let currentStudents = [];
+    let charts = {};
+    let questionWeights = []; 
+
+    window.onload = function() {
+        document.getElementById('loginInput').focus();
+    };
+
+    window.attemptLogin = function() {
+        const inputVal = document.getElementById('loginInput').value.trim();
+        const errorDiv = document.getElementById('loginError');
+        
+        if(!inputVal) return;
+        const normalize = (str) => str.toLocaleLowerCase('tr').replace(/\s+/g, ' ').trim();
+        const searchInput = normalize(inputVal);
+
+        // DEMO KONTROLÜ
+        if(searchInput === "demo") {
+            isDemoMode = true;
+            isAdmin = false;
+            currentLoggedInTeacher = "Demo Öğretmen";
+            enterSystem("Demo Öğretmen");
+            return;
+        }
+
+        if(searchInput === "yönetici" || searchInput === "vedat yalçın") {
+            isAdmin = true;
+            const displayName = (searchInput === "vedat yalçın") ? "Vedat YALÇIN" : "Yönetici";
+            enterSystem(displayName);
+            return;
+        }
+
+        let foundTeacher = null;
+        const teacherNames = Object.keys(teacherData);
+        for(let t of teacherNames) {
+            if(normalize(t) === searchInput) {
+                foundTeacher = t;
+                break;
+            }
+        }
+
+        if(foundTeacher) {
+            isAdmin = false;
+            currentLoggedInTeacher = foundTeacher;
+            enterSystem(foundTeacher);
+        } else {
+            errorDiv.classList.remove('hidden');
+        }
+    }
+
+    function enterSystem(userName) {
+        document.getElementById('loginOverlay').classList.add('hidden');
+        document.getElementById('mainSystem').classList.remove('hidden');
+        document.getElementById('welcomeTitle').innerText = `Hoş Geldiniz, ${userName}!`;
+
+        const teacherSelect = document.getElementById('teacherSelect');
+        const lockedName = document.getElementById('lockedTeacherName');
+
+        if(isAdmin) {
+            lockedName.classList.add('hidden');
+            teacherSelect.classList.remove('hidden');
+            teacherSelect.innerHTML = '<option value="">Öğretmen Seçiniz...</option>';
+            Object.keys(teacherData).sort().forEach(t => teacherSelect.add(new Option(t, t)));
+            if(userName === "Vedat YALÇIN") { teacherSelect.value = "Vedat YALÇIN"; updateLessons(); }
+        } else if(isDemoMode) {
+            teacherSelect.classList.add('hidden');
+            lockedName.classList.remove('hidden');
+            lockedName.value = "Demo Öğretmen";
+            teacherSelect.innerHTML = "";
+            teacherSelect.add(new Option("Demo Öğretmen", "Demo Öğretmen"));
+            
+            // Demo için dersleri manuel ekle
+            const lSelect = document.getElementById('lessonSelect');
+            lSelect.innerHTML = '<option value="">Ders Seçiniz...</option>';
+            lSelect.add(new Option("Matematik", "Matematik"));
+            lSelect.add(new Option("Fen Bilimleri", "Fen Bilimleri"));
+            lSelect.value = "Matematik";
+            
+            // Demo Verileri Yükle
+            loadDemoData();
+        } else {
+            teacherSelect.classList.add('hidden');
+            lockedName.classList.remove('hidden');
+            lockedName.value = userName;
+            teacherSelect.innerHTML = "";
+            teacherSelect.add(new Option(userName, userName));
+            teacherSelect.value = userName;
+            updateLessons();
+        }
+        renderWeightInputs(); 
+    }
+
+    window.loadDemoData = function() {
+        allStudents = demoStudents;
+        // Dosya yükleme kutusunu gizle, mesaj göster
+        document.getElementById('fileInput').classList.add('hidden');
+        document.getElementById('demoFileMsg').classList.remove('d-none');
+        
+        // Sınıfı seç
+        const classSelect = document.getElementById('classSelect');
+        classSelect.innerHTML = '<option value="Demo-A">Demo-A</option>';
+        document.getElementById('classSection').classList.remove('hidden');
+    }
+
+    window.logout = function() { location.reload(); }
+
+    window.updateLessons = function() {
+        if(isDemoMode) return;
+        const teacherSelect = document.getElementById('teacherSelect');
+        const teacher = isAdmin ? teacherSelect.value : currentLoggedInTeacher;
+        const lSelect = document.getElementById('lessonSelect');
+        lSelect.innerHTML = '<option value="">Ders Seçiniz...</option>';
+        if(teacher && teacherData[teacher]) {
+            teacherData[teacher].forEach(lesson => lSelect.add(new Option(lesson, lesson)));
+        }
+        const sep = document.createElement('option'); sep.disabled = true; sep.text = "────────────────"; lSelect.add(sep);
+        const optAll = document.createElement('option'); optAll.value = "LOAD_ALL"; optAll.text = "📂 Tüm Ders Havuzunu Göster"; optAll.style.fontWeight = "bold"; optAll.style.color = "#2980b9"; lSelect.add(optAll);
+        const optManual = document.createElement('option'); optManual.value = "MANUAL"; optManual.text = "✍️ Listede Yok (Elle Yaz)"; optManual.style.color = "#d35400"; lSelect.add(optManual);
+        checkLessonSelect();
+    }
+
+    window.checkLessonSelect = function() {
+        const lSelect = document.getElementById('lessonSelect');
+        const val = lSelect.value;
+        const manualInput = document.getElementById('manualLessonInput');
+        if(val === "LOAD_ALL") {
+            lSelect.innerHTML = '<option value="">Seçiniz...</option>';
+            allLessonsPool.sort().forEach(l => lSelect.add(new Option(l, l)));
+            const sep = document.createElement('option'); sep.disabled = true; sep.text = "────────────────"; lSelect.add(sep);
+            const optManual = document.createElement('option'); optManual.value = "MANUAL"; optManual.text = "✍️ Listede Yok (Elle Yaz)"; optManual.style.color = "#d35400"; lSelect.add(optManual);
+            manualInput.classList.add('hidden'); return;
+        }
+        if(val === "MANUAL") { manualInput.classList.remove('hidden'); manualInput.focus(); } 
+        else { manualInput.classList.add('hidden'); manualInput.value = ""; }
+    }
+
+    window.renderWeightInputs = function() {
+        const qCount = parseInt(document.getElementById('questionCount').value);
+        const container = document.getElementById('weightInputs');
+        container.innerHTML = "";
+        let defaultVal = Math.floor(100 / qCount); 
+        let remainder = 100 % qCount;
+        for(let i=1; i<=qCount; i++) {
+            let val = defaultVal; if(i <= remainder) val++; 
+            val = Math.round(val / 5) * 5;
+            if (val === 0) val = 5;
+            const div = document.createElement('div'); div.className = 'weight-item';
+            div.innerHTML = `<label>S${i}</label><input type="number" class="w-input" data-idx="${i}" value="${val}" oninput="onWeightInput(this)">`;
+            container.appendChild(div);
+        }
+        onWeightInput(document.querySelector('.w-input'));
+    }
+
+    window.onWeightInput = function(changedInput) {
+        if(changedInput) changedInput.dataset.edited = "true";
+        const allInputs = Array.from(document.querySelectorAll('.w-input'));
+        let editedSum = 0; let uneditedInputs = [];
+        allInputs.forEach(inp => {
+            if(inp.dataset.edited === "true") editedSum += Number(inp.value) || 0;
+            else uneditedInputs.push(inp);
+        });
+        let remaining = 100 - editedSum;
+        if(uneditedInputs.length > 0) {
+            const lastUnedited = uneditedInputs[uneditedInputs.length - 1];
+            let currentRemainder = remaining;
+            for(let i = 0; i < uneditedInputs.length - 1; i++) {
+                let inp = uneditedInputs[i];
+                let idealShare = currentRemainder / (uneditedInputs.length - i);
+                let roundedShare = Math.round(idealShare / 5) * 5;
+                inp.value = roundedShare;
+                currentRemainder -= roundedShare;
+            }
+            lastUnedited.value = currentRemainder;
+        }
+        updateWeightTotal();
+    }
+
+    window.updateWeightTotal = function() {
+        let sum = 0; document.querySelectorAll('.w-input').forEach(inp => sum += Number(inp.value)||0);
+        const badge = document.getElementById('weightTotal');
+        badge.innerText = sum + "/100";
+        if(sum === 100) badge.className = "badge bg-success"; else badge.className = "badge bg-danger";
+        return sum;
+    }
+    window.distributeEvenly = function() { renderWeightInputs(); }
+
+    document.getElementById('fileInput').addEventListener('change', function(e) {
+        const file = e.target.files[0]; if(!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, {type: 'array'});
+            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+            rawExcelData = XLSX.utils.sheet_to_json(worksheet, {header: 1, defval: ""});
+            if(rawExcelData.length < 2) { alert("Excel dosyası boş."); return; }
+            prepareColumnMapping(rawExcelData);
+        };
+        reader.readAsArrayBuffer(file);
+    });
+
+    function prepareColumnMapping(rows) {
+        let sampleRow = rows[0]; if(!sampleRow || sampleRow.length < 2) sampleRow = rows[1];
+        const selects = ['colName', 'colSurname', 'colClass', 'colNo'];
+        const getColLetter = (n) => String.fromCharCode(65 + n);
+        selects.forEach(id => {
+            const el = document.getElementById(id);
+            el.innerHTML = "";
+            if(id === 'colSurname') el.innerHTML = '<option value="-1">Yok (Ad ile birleşik)</option>';
+            sampleRow.forEach((cellVal, idx) => {
+                let preview = cellVal ? `(${cellVal})` : "(Boş)"; 
+                if(String(preview).length > 20) preview = preview.substring(0,20) + "...";
+                const optionText = `Sütun ${getColLetter(idx)} ${preview}`;
+                el.add(new Option(optionText, idx));
+            });
+        });
+        if(sampleRow.length > 0) document.getElementById('colName').selectedIndex = 0; 
+        if(sampleRow.length > 1) document.getElementById('colSurname').value = 1; 
+        if(sampleRow.length > 2) document.getElementById('colClass').value = 2;   
+        if(sampleRow.length > 3) document.getElementById('colNo').value = 3;      
+        document.getElementById('columnMapping').classList.remove('hidden');
+    }
+
+    window.applyMapping = function() {
+        const colName = parseInt(document.getElementById('colName').value);
+        const colSurname = parseInt(document.getElementById('colSurname').value);
+        const colClass = parseInt(document.getElementById('colClass').value);
+        const colNo = parseInt(document.getElementById('colNo').value);
+        allStudents = [];
+        for(let i=1; i<rawExcelData.length; i++) {
+            const row = rawExcelData[i]; if(!row) continue;
+            const sinif = row[colClass]; if(!sinif) continue;
+            const no = row[colNo] || "-";
+            let name = row[colName] || "";
+            if(colSurname !== -1 && row[colSurname]) name += " " + row[colSurname];
+            allStudents.push({ sinif: String(sinif).trim(), no: String(no), adSoyad: String(name).trim() });
+        }
+        if(allStudents.length === 0) { alert("Öğrenci bulunamadı."); return; }
+        const classes = [...new Set(allStudents.map(s => s.sinif))].sort();
+        const classSelect = document.getElementById('classSelect');
+        classSelect.innerHTML = '<option value="">Seçiniz...</option>' + classes.map(c => `<option>${c}</option>`).join('');
+        document.getElementById('columnMapping').classList.add('hidden');
+        document.getElementById('classSection').classList.remove('hidden');
+        alert(`${allStudents.length} öğrenci yüklendi!`);
+    }
+
+    window.generateTable = function() {
+        if(updateWeightTotal() !== 100) { alert("Toplam puan 100 olmalıdır!"); return; }
+        questionWeights = []; document.querySelectorAll('.w-input').forEach(inp => questionWeights.push(Number(inp.value)));
+        const teacherSelect = document.getElementById('teacherSelect');
+        const teacher = (isAdmin || isDemoMode) ? teacherSelect.value : currentLoggedInTeacher;
+        let lesson = document.getElementById('lessonSelect').value;
+        if(lesson === "MANUAL") lesson = document.getElementById('manualLessonInput').value.trim();
+        const selectedClass = document.getElementById('classSelect').value;
+        const qCount = parseInt(document.getElementById('questionCount').value);
+        if(!selectedClass) { alert("Lütfen Sınıf Seçin"); return; }
+        if(!teacher || !lesson) { alert("Lütfen Öğretmen ve Ders Seçin"); return; }
+        document.getElementById('welcomeMsg').classList.add('hidden');
+        document.getElementById('headerInfo').classList.remove('hidden');
+        document.getElementById('reportTitle').innerHTML = `${lesson} - ${teacher} (${selectedClass})`;
+        document.getElementById('weightInfoDisplay').innerText = "Soru Puanları: " + questionWeights.map((w,i) => `S${i+1}:${w}`).join(' | ');
+        
+        document.getElementById('pdfReportTitle').innerText = `${lesson.toUpperCase()} DERSİ SINAV ANALİZ RAPORU`;
+        document.getElementById('pdfSubTitle').innerText = `${selectedClass} Sınıfı - ${teacher}`;
+
+        currentStudents = allStudents.filter(s => s.sinif === selectedClass);
+        currentStudents.sort((a,b) => parseInt(a.no) - parseInt(b.no));
+        let headHTML = `<th style="width:50px">No</th><th>Ad Soyad</th>`;
+        for(let i=1; i<=qCount; i++) headHTML += `<th>S${i}<br><small class="text-muted">(${questionWeights[i-1]}p)</small></th>`;
+        headHTML += `<th class="bg-light">TOP</th><th class="bg-light">NOT</th>`;
+        document.getElementById('tableHeader').innerHTML = headHTML;
+        const tbody = document.getElementById('tableBody'); tbody.innerHTML = "";
+        
+        currentStudents.forEach((st, idx) => {
+            let row = `<tr><td class="fw-bold text-muted">${st.no}</td><td>${st.adSoyad}</td>`;
+            for(let i=1; i<=qCount; i++) row += `<td><input type="text" class="score-input q-input" data-row="${idx}" data-col="${i}" data-max="${questionWeights[i-1]}" onkeydown="handleKeyNavigation(event, ${idx}, ${i})" oninput="validateInput(this, ${idx})" onfocus="this.select()"></td>`;
+            row += `<td class="fw-bold text-center" id="total-${idx}">-</td><td class="fw-bold text-primary text-center" id="grade-${idx}">-</td></tr>`;
+            tbody.innerHTML += row;
+        });
+        document.getElementById('tableContainer').classList.remove('hidden');
+        document.getElementById('resultsSection').classList.add('hidden');
+
+        // DEMO İÇİN OTO DOLDURMA
+        if(isDemoMode) {
+            setTimeout(() => {
+                document.querySelectorAll('.score-input').forEach(inp => {
+                    let max = Number(inp.getAttribute('data-max'));
+                    // 100 üzerinden 70-100 arası rastgele başarı gibi düşünelim
+                    let score = Math.floor(Math.random() * (max + 1));
+                    // Biraz daha başarılı olsunlar
+                    if(score < max/2) score = max - 1;
+                    inp.value = score;
+                    // Birkaç kişiye G yaz
+                    if(Math.random() > 0.95) inp.value = "G";
+                });
+                // Tüm satırları güncelle
+                for(let i=0; i<currentStudents.length; i++) updateRow(i);
+                // Hesaplaya bas
+                calculateResults();
+            }, 500);
+        }
+    }
+
+    window.handleKeyNavigation = function(e, rowIdx, colIdx) {
+        if(e.key === "Enter" || e.key === "ArrowDown") {
+            e.preventDefault();
+            const next = document.querySelector(`input[data-row="${rowIdx+1}"][data-col="${colIdx}"]`);
+            if(next) next.focus();
+        } else if(e.key === "ArrowUp") {
+            e.preventDefault();
+            const prev = document.querySelector(`input[data-row="${rowIdx-1}"][data-col="${colIdx}"]`);
+            if(prev) prev.focus();
+        } else if(e.key === "ArrowRight") {
+            const nextCol = document.querySelector(`input[data-row="${rowIdx}"][data-col="${colIdx+1}"]`);
+            if(nextCol) { nextCol.focus(); }
+        } else if(e.key === "ArrowLeft") {
+            const prevCol = document.querySelector(`input[data-row="${rowIdx}"][data-col="${colIdx-1}"]`);
+            if(prevCol) { prevCol.focus(); }
+        }
+    }
+
+    window.validateInput = function(input, idx) {
+        let val = input.value;
+        const maxScore = Number(input.getAttribute('data-max'));
+        if (val.toLowerCase() === 'g') {
+            input.value = "G"; input.style.color = "red"; input.style.backgroundColor = "#fff0f0";
+            if(input.getAttribute('data-col') === "1") {
+                document.querySelectorAll(`input[data-row="${idx}"]`).forEach(inp => { inp.value = "G"; inp.style.color="red"; inp.style.backgroundColor="#fff0f0"; });
+            }
+        } else if (!isNaN(val) && val !== "") {
+             let numVal = Number(val);
+             if(numVal > maxScore) { input.style.borderColor = "red"; input.style.backgroundColor = "#ffe6e6"; } 
+             else { input.style.borderColor = "#ddd"; input.style.backgroundColor = "white"; }
+             input.style.color = "black";
+        } else { input.value = val.replace(/[^0-9gG]/g, ''); }
+        updateRow(idx);
+    }
+
+    window.updateRow = function(idx) {
+        const inputs = document.querySelectorAll(`input[data-row="${idx}"]`);
+        let sum = 0; let hasEntry = false; let entryCount = 0; let gCount = 0;
+        inputs.forEach(inp => {
+            let val = inp.value;
+            if(val !== "") {
+                hasEntry = true; entryCount++;
+                if(val.toUpperCase() === 'G') gCount++; else sum += Number(val)||0;
+            }
+        });
+        const totalEl = document.getElementById(`total-${idx}`);
+        const gradeEl = document.getElementById(`grade-${idx}`);
+        if (!hasEntry) { totalEl.innerText = "-"; gradeEl.innerText = "-"; } 
+        else if (entryCount > 0 && entryCount === gCount) { totalEl.innerText = "G"; gradeEl.innerText = "G"; } 
+        else {
+            totalEl.innerText = sum;
+            let n = 1; if(sum>=85) n=5; else if(sum>=70) n=4; else if(sum>=60) n=3; else if(sum>=50) n=2;
+            gradeEl.innerText = n;
+        }
+    }
+
+    window.calculateResults = function() {
+        const inputs = document.querySelectorAll('.score-input');
+        for (let input of inputs) {
+            let val = input.value;
+            if (val === "" || val.toUpperCase() === 'G') continue;
+            let numVal = Number(val);
+            let maxP = Number(input.getAttribute('data-max'));
+            if (numVal > maxP) {
+                let rowIdx = input.getAttribute('data-row');
+                let colIdx = input.getAttribute('data-col');
+                let studentName = currentStudents[rowIdx].adSoyad;
+                alert(`⚠️ HATA: "${studentName}" - Soru ${colIdx}\nGirilen: ${numVal} / Max: ${maxP}`);
+                input.focus(); return;
+            }
+        }
+
+        let scores = []; let notes = [];
+        const qCount = questionWeights.length;
+        let qSums = new Array(qCount).fill(0);
+        let qCounts = new Array(qCount).fill(0); 
+        let studentResults = []; 
+
+        currentStudents.forEach((st, idx) => {
+            const totalText = document.getElementById(`total-${idx}`).innerText;
+            if (totalText === "-") return; 
+
+            let tot = 0; let note = 0;
+            if (totalText === "G") { tot = 0; note = 1; } 
+            else { tot = Number(totalText); note = Number(document.getElementById(`grade-${idx}`).innerText); }
+            
+            scores.push(tot); notes.push(note);
+            
+            let qVals = [];
+            document.querySelectorAll(`input[data-row="${idx}"]`).forEach((inp, i) => {
+                let val = inp.value;
+                qVals.push(val === "" ? "-" : val);
+                if(val.toUpperCase() !== 'G') qSums[i] += Number(val)||0;
+                qCounts[i]++;
+            });
+            studentResults.push({no: st.no, name: st.adSoyad, qVals: qVals, total: totalText, note: totalText === "G" ? "G" : note});
+        });
+
+        if(scores.length===0) { alert("Not bulunamadı."); return; }
+
+        const N = scores.length;
+        const mean = scores.reduce((a,b)=>a+b,0) / N;
+        const successRate = (scores.filter(s => s >= 50).length / N) * 100;
+        const sorted = [...scores].sort((a,b)=>a-b);
+        const mid = Math.floor(N/2);
+        const median = N%2!==0 ? sorted[mid] : (sorted[mid-1]+sorted[mid])/2;
+        const variance = scores.reduce((a,b)=>a+Math.pow(b-mean,2),0) / (N - 1 || 1);
+        const stdDev = Math.sqrt(variance);
+        
+        let skewness = 0;
+        if(N > 2 && stdDev > 0) {
+            let sumCubed = scores.reduce((a,b) => a + Math.pow((b-mean)/stdDev, 3), 0);
+            skewness = (N / ((N-1)*(N-2))) * sumCubed;
+        }
+        const range = Math.max(...scores) - Math.min(...scores);
+
+        document.getElementById('resMean').innerText = mean.toFixed(2);
+        document.getElementById('resMedian').innerText = median;
+        document.getElementById('resSuccessRate').innerText = "%" + successRate.toFixed(2);
+        document.getElementById('resStd').innerText = stdDev.toFixed(2);
+        document.getElementById('statCount').innerText = N;
+        document.getElementById('statPassed').innerText = scores.filter(s => s >= 50).length;
+        document.getElementById('statFailed').innerText = scores.filter(s => s < 50).length;
+        document.getElementById('statRange').innerText = range;
+        document.getElementById('statSkew').innerText = skewness.toFixed(3);
+
+        let skewComment = ""; let stdComment = ""; let rangeComment = ""; let difficulty = "";
+        if (skewness < -0.1) { difficulty = "KOLAY (Negatif Çarpık)"; skewComment = "Sınav Kolaydır. Öğrenci seviyesinin altındadır."; } 
+        else if (skewness > 0.1) { difficulty = "ZOR (Pozitif Çarpık)"; skewComment = "Sınav Zordur. Öğrenci seviyesinin üzerindedir."; } 
+        else { difficulty = "NORMAL"; skewComment = "Sınav Orta Güçlüktedir."; }
+        if (stdDev > 10) stdComment = " Güvenilirlik yüksektir."; else stdComment = " Ayırt edicilik düşüktür.";
+        if (range > 50) rangeComment = " Öğrenciler arası fark vardır."; else rangeComment = " Dizi genişliği normaldir.";
+
+        document.getElementById('statDifficulty').innerText = difficulty;
+        document.getElementById('examComment').innerHTML = skewComment + stdComment + rangeComment;
+
+        const ranges = [0,0,0,0,0]; 
+        scores.forEach(s => {
+            if(s < 50) ranges[0]++; else if(s < 60) ranges[1]++; else if(s < 70) ranges[2]++; else if(s < 85) ranges[3]++; else ranges[4]++;
+        });
+        document.getElementById('range0_49').innerText = ranges[0];
+        document.getElementById('range50_59').innerText = ranges[1];
+        document.getElementById('range60_69').innerText = ranges[2];
+        document.getElementById('range70_84').innerText = ranges[3];
+        document.getElementById('range85_100').innerText = ranges[4];
+
+        const listHeader = document.getElementById('studentListHeader');
+        listHeader.innerHTML = `<th>No</th><th>Ad Soyad</th>`;
+        questionWeights.forEach((w, i) => listHeader.innerHTML += `<th>S${i+1}</th>`);
+        listHeader.innerHTML += `<th>Top</th><th>Not</th>`;
+
+        const listBody = document.getElementById('studentListBody');
+        listBody.innerHTML = "";
+        studentResults.forEach(st => {
+            let row = `<tr><td>${st.no}</td><td class="text-start">${st.name}</td>`;
+            st.qVals.forEach(v => row += `<td>${v}</td>`);
+            row += `<td class="fw-bold">${st.total}</td><td class="fw-bold">${st.note}</td></tr>`;
+            listBody.innerHTML += row;
+        });
+
+        const teacher = (isAdmin || isDemoMode) ? document.getElementById('teacherSelect').value : currentLoggedInTeacher;
+        let lesson = document.getElementById('lessonSelect').value === "MANUAL" ? document.getElementById('manualLessonInput').value : document.getElementById('lessonSelect').value;
+        const date = new Date().toLocaleDateString('tr-TR');
+        
+        const lessonAbbr = { "Sosyal Bilgiler": "Sos. Bilg.", "Din Kültürü ve Ahlak Bilgisi": "Din Kül. Ahl. Bil.", "T.C. İnkılap Tarihi ve Atatürkçülük": "İnk. Tar.", "Bilişim Teknolojileri ve Yazılım": "Bilişim", "Teknoloji ve Tasarım": "Tek. Tasarım", "Beden Eğitimi ve Spor": "Beden Eğt.", "Fen Bilimleri": "Fen Bil.", "Görsel Sanatlar": "Görsel San.", "İlköğretim Matematik": "Matematik", "Sç. Matematik ve Bilim Uygulamaları": "Sç. Mat.", "Sç. Görgü Kuralları ve Nezaket (M)": "Sç. Görgü" };
+        const shortLesson = lessonAbbr[lesson] || lesson;
+
+        document.getElementById('signatureArea').innerHTML = `
+            <div style="display: flex; justify-content: flex-end; padding-right: 50px; page-break-inside: avoid;">
+                <div style="text-align: center; width: 250px;">
+                    <p style="margin-bottom: 5px;">${date}</p>
+                    <p style="font-weight: bold; margin-bottom: 2px;">${teacher}</p>
+                    <p>${shortLesson} Öğretmeni</p>
+                    <br><br>
+                </div>
+            </div>
+            <div style="text-align: center; margin-top: 40px; page-break-inside: avoid;">
+                <p style="font-weight: bold; margin-bottom: 2px;">Vedat YALÇIN</p>
+                <p>Okul Müdürü</p>
+                <p style="margin-bottom: 2px;">İncelendi</p>
+                <br>
+            </div>
+        `;
+
+        document.getElementById('resultsSection').classList.remove('hidden');
+        drawCharts(scores, notes);
+        
+        const qBody = document.getElementById('questionAnalysisBody');
+        qBody.innerHTML = "";
+        qSums.forEach((sum, i) => {
+            let avg = sum / N; 
+            let maxP = questionWeights[i]; 
+            let perc = (avg/maxP)*100;
+            let status = perc >= 50 ? "İyi" : "Zayıf";
+            let cls = perc >= 50 ? "text-success" : "text-danger";
+            qBody.innerHTML += `<tr><td>Soru ${i+1}</td><td>${maxP}</td><td>${avg.toFixed(2)}</td><td>%${perc.toFixed(1)}</td><td class="${cls}">${status}</td></tr>`;
+        });
+        document.getElementById('resultsSection').scrollIntoView({behavior:'smooth'});
+    }
+
+    function drawCharts(scores, notes) {
+        if(charts.score) charts.score.destroy();
+        if(charts.grade) charts.grade.destroy();
+        let bins = new Array(10).fill(0);
+        scores.forEach(s => { let i=Math.floor(s/10); if(i>=10)i=9; bins[i]++; });
+        charts.score = new Chart(document.getElementById('scoreChart'), { type: 'bar', data: { labels: ['0-9','10-19','20-29','30-39','40-49','50-59','60-69','70-79','80-89','90-100'], datasets: [{label:'Öğrenci', data:bins, backgroundColor:'#3498db'}] }, options: {animation: false} });
+        let nCounts = [0,0,0,0,0]; notes.forEach(x => nCounts[x-1]++);
+        charts.grade = new Chart(document.getElementById('gradeChart'), { type: 'pie', data: { labels: ['1','2','3','4','5'], datasets: [{data:nCounts, backgroundColor:['#e74c3c','#e67e22','#f1c40f','#3498db','#2ecc71']}] }, options: {animation: false} });
+    }
+
+    window.exportResultExcel = function() {
+        const cls = document.getElementById('classSelect').value;
+        const teacher = isAdmin ? document.getElementById('teacherSelect').value : currentLoggedInTeacher;
+        let lesson = document.getElementById('lessonSelect').value === "MANUAL" ? document.getElementById('manualLessonInput').value : document.getElementById('lessonSelect').value;
+        let data = [];
+        currentStudents.forEach((st, idx) => {
+            let row = { "Sınıf": cls, "No": st.no, "Ad Soyad": st.adSoyad };
+            document.querySelectorAll(`input[data-row="${idx}"]`).forEach((inp,i) => {
+                let val = inp.value; row[`Soru ${i+1}`] = val === "" ? "" : (val.toUpperCase() === 'G' ? "G" : Number(val));
+            });
+            row["TOPLAM"] = document.getElementById(`total-${idx}`).innerText;
+            row["NOT"] = document.getElementById(`grade-${idx}`).innerText;
+            data.push(row);
+        });
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), "Analiz");
+        XLSX.writeFile(wb, `${cls}_${lesson}_Analiz.xlsx`);
+    }
+</script>
+
+</body>
+</html>
